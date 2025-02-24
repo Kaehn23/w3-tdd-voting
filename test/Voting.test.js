@@ -8,12 +8,12 @@ describe("Voting Contract", function () {
     [owner, addr1, addr2, addr3, ...addrs] = await ethers.getSigners();
     Voting = await ethers.getContractFactory("Voting");
     voting = await Voting.deploy();
-    await voting.waitForDeployment(); 
+    await voting.waitForDeployment(); // for ethers v6
   });
 
   describe("Initial State", function () {
     it("should set the initial workflow status to RegisteringVoters", async function () {
-      expect(await voting.workflowStatus()).to.equal(0);
+      expect(await voting.workflowStatus()).to.equal(0); // 0 => RegisteringVoters
     });
   });
 
@@ -43,7 +43,7 @@ describe("Voting Contract", function () {
       // Change state to proposals registration phase
       await voting.startProposalsRegistration();
       await expect(voting.registerVoter(addr2.address)).to.be.revertedWith(
-        "Eelector inscription isn't active yet."
+        "L'inscription des electeurs n'est pas active."
       );
     });
   });
@@ -70,7 +70,7 @@ describe("Voting Contract", function () {
       await voting.startProposalsRegistration();
       // Already in ProposalsRegistrationStarted so calling again should revert.
       await expect(voting.startProposalsRegistration()).to.be.revertedWith(
-        "Actual status has to be 'RegisteringVoters'."
+        "Le statut actuel doit etre 'RegisteringVoters'."
       );
     });
 
@@ -87,19 +87,19 @@ describe("Voting Contract", function () {
     it("should revert if proposal description is empty", async function () {
       await voting.startProposalsRegistration();
       await expect(voting.connect(addr1).registerProposal(""))
-        .to.be.revertedWith("Description can not be empty.");
+        .to.be.revertedWith("La description ne peut pas etre vide.");
     });
 
     it("should revert if non-registered voter tries to register a proposal", async function () {
       await voting.startProposalsRegistration();
       await expect(voting.connect(addr3).registerProposal("Proposal from addr3"))
-        .to.be.revertedWith("You're not registered as elector");
+        .to.be.revertedWith("Vous n'etes pas enregistre en tant qu'electeur.");
     });
 
     it("should revert if registerProposal is called when not in ProposalsRegistrationStarted", async function () {
       // Do not call startProposalsRegistration; use the existing registration from beforeEach.
       await expect(voting.connect(addr1).registerProposal("Test Proposal")).to.be.revertedWith(
-        "Proposal registering isn't active yet."
+        "L'enregistrement des propositions n'est pas actif."
       );
     });
 
@@ -113,7 +113,7 @@ describe("Voting Contract", function () {
 
     it("should revert ending proposals registration if not in correct state", async function () {
       await expect(voting.endProposalsRegistration()).to.be.revertedWith(
-        "Proposal registering isn't on yet."
+        "L'enregistrement des propositions n'est pas en cours."
       );
     });
   });
@@ -144,12 +144,14 @@ describe("Voting Contract", function () {
       await voting.startProposalsRegistration();
       await voting.connect(addr1).registerProposal("Proposal 1");
       await expect(voting.startVotingSession()).to.be.revertedWith(
-        "Proposals haven't been registered yet."
+        "Les propositions ne sont pas encore enregistrees."
       );
     });
 
-    it("should revert if vote is called when voting session is not active", async function () {      
-      await expect(voting.connect(addr1).vote(0)).to.be.revertedWith("Voting session isn't active.");
+    it("should revert if vote is called when voting session is not active", async function () {
+      // In this suite, the state is ProposalsRegistrationEnded (state 2).
+      // Use a voter that's already registered (addr1).
+      await expect(voting.connect(addr1).vote(0)).to.be.revertedWith("La session de vote n'est pas active.");
     });
 
     it("should allow a registered voter to vote", async function () {
@@ -173,7 +175,7 @@ describe("Voting Contract", function () {
     it("should revert if unregistered voter tries to vote", async function () {
       await voting.startVotingSession();
       await expect(voting.connect(addr3).vote(0)).to.be.revertedWith(
-        "You're not registered as elector."
+        "Vous n'etes pas enregistre en tant qu'electeur."
       );
     });
 
@@ -192,7 +194,7 @@ describe("Voting Contract", function () {
 
     it("should revert ending voting session if not in correct state", async function () {
       await expect(voting.endVotingSession()).to.be.revertedWith(
-        "Voting session isn't running."
+        "La session de vote n'est pas en cours."
       );
     });
   });
@@ -233,7 +235,7 @@ describe("Voting Contract", function () {
       await voting.endProposalsRegistration();
       await voting.startVotingSession();
       await expect(voting.tallyVotes()).to.be.revertedWith(
-        "Voting session has to be done."
+        "La session de vote doit etre terminee."
       );
     });
 
@@ -246,7 +248,7 @@ describe("Voting Contract", function () {
 
     it("should revert getWinner if votes not tallied", async function () {
       await expect(voting.getWinner()).to.be.revertedWith(
-        "Votes haven't been comptabilized."
+        "Les votes n'ont pas encore ete comptabilises."
       );
     });
 
